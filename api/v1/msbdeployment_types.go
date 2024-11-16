@@ -40,7 +40,7 @@ type MSbDeploymentSpec struct {
 	StartCmd string `json:"start_cmd,omitempty"`
 	//Args存储启动命令行参数
 	//+optional
-	Args []string `json:",omitempty"`
+	Args []string `json:"args,omitempty"`
 	//Environments环境变量
 	//+optional
 	Environments []corev1.EnvVar `json:"environments,omitempty"`
