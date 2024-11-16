@@ -1,0 +1,27 @@
+# permissions for end users to edit msbdeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: mashibing-deployment
+    app.kubernetes.io/managed-by: kustomize
+  name: msbdeployment-editor-role
+rules:
+- apiGroups:
+  - apps.mashibing.com
+  resources:
+  - msbdeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps.mashibing.com
+  resources:
+  - msbdeployments/status
+  verbs:
+  - get

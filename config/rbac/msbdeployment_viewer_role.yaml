@@ -1,0 +1,23 @@
+# permissions for end users to view msbdeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: mashibing-deployment
+    app.kubernetes.io/managed-by: kustomize
+  name: msbdeployment-viewer-role
+rules:
+- apiGroups:
+  - apps.mashibing.com
+  resources:
+  - msbdeployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps.mashibing.com
+  resources:
+  - msbdeployments/status
+  verbs:
+  - get
