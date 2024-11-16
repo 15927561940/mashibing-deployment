@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,17 +26,78 @@ import (
 
 // MSbDeploymentSpec defines the desired state of MSbDeployment
 type MSbDeploymentSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	//我们写的
+	//Image镜像存储地址
+	Image string `json:"image"`
+	//Port  端口
+	Port int32 `json:"port"`
 
-	// Foo is an example field of MSbDeployment. Edit msbdeployment_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	//Replicas副本数
+	//+optional
+	Replicas int32 `json:"replicas,omitempty"`
+	//StartCmd开始的命令
+	//+optional
+	StartCmd string `json:"start_cmd,omitempty"`
+	//Args存储启动命令行参数
+	//+optional
+	Args []string `json:",omitempty"`
+	//Environments环境变量
+	//+optional
+	Environments []corev1.EnvVar `json:"environments,omitempty"`
+
+	//Expose要暴露服务的模式，ingress还是nodeport等
+	Expose *Expose
+}
+
+// Expose  //我们写的
+type Expose struct {
+	//Mode 模式，svc通过那个模式暴露， ingress模式  nodeport模式...之类的
+	Mode string `json:"mode"`
+	//IngressDomain 服务的ingress的域名，在Mode为ingress的时候此项必填,现在是可选的
+	//+optional
+	IngressDomain string `json:"ingress_domain,omitempty"`
+	//NodePort  端口,在Mode为NodePort时此项必填,现在是可选的
+	//+optional
+	NodePort int32 `json:"node_port,omitempty"`
+	//ServicePort  服务端口,可选，不填写则默认和上面的Port一样
+	//+optional
+	ServicePort int32 `json:"service_port,omitempty"`
 }
 
 // MSbDeploymentStatus defines the observed state of MSbDeployment
 type MSbDeploymentStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	//Phase 处于什么阶段
+	//+optional
+	Phase string `json:"phase,omitempty"`
+	//Message  这个阶段的信息
+	//+optional
+	Message string `json:"message,omitempty"`
+	//Reason  处于这个阶段的原因
+	//+optional
+	Reason string `json:",omitempty"`
+	//Conditions  处于这个阶段的原因
+	//+optional
+	Conditions []Condition `json:"conditions,omitempty"`
+}
+
+// defines the observed state of Condition
+type Condition struct {
+	//Type 子资源类型
+	//+optional
+	Type string `json:"type,omitempty"`
+	//Message 子资源的信息
+	//+optional
+	Message string `json:"message,omitempty"`
+	//Status 子资源的状态
+	//+optional
+	Status string `json:"status,omitempty"`
+	//Reason 处于这个状态的原因
+	//+optional
+	Reason string `json:"reason,omitempty"`
+
+	//LastTransitionTime  最近更新时间
+	//+optional
+	LastTransitionTime metav1.Time `json:"last_transition_time,omitempty"`
 }
 
 // +kubebuilder:object:root=true
