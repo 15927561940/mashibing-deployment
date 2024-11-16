@@ -74,7 +74,7 @@ type MSbDeploymentStatus struct {
 	Message string `json:"message,omitempty"`
 	//Reason  处于这个阶段的原因
 	//+optional
-	Reason string `json:",omitempty"`
+	Reason string `json:"reason,omitempty"`
 	//Conditions  处于这个阶段的原因
 	//+optional
 	Conditions []Condition `json:"conditions,omitempty"`
