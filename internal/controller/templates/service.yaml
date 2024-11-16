@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.cilium.io/global: "true"
+  labels:
+  name: {{ .ObjectMeta.Name }}
+  namespace: default
+spec:
+  ports:
+    - name: http-port
+      port: {{ .MSbDeploymentSpec.Port }}
+      protocol: TCP
+      targetPort: {{ .MSbDeploymentSpec.Port }}
+  selector:
+    app: {{ .ObjectMeta.Name }}
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

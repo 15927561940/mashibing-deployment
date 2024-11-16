@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .ObjectMeta.Name }}
+  name: {{ .ObjectMeta.Name }}
+spec:
+  replicas: {{ .MSbDeploymentSpec.Replicas }}
+  selector:
+    matchLabels:
+      app: {{ .ObjectMeta.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .ObjectMeta.Name }}
+    spec:
+      containers:
+        - image: {{ .MSbDeploymentSpec.Image }}
+          name: {{ .ObjectMeta.Name }}
+          ports:
+            - containerPort: {{ .MSbDeploymentSpec.Port }}
+status: {}

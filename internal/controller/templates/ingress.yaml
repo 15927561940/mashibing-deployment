@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .ObjectMeta.Name }}
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ .MSbDeploymentSpec.Expose.IngressDomain }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: {{ .ObjectMeta.Name }}
+                port:
+                  number: {{ .MSbDeploymentSpec.Port }}

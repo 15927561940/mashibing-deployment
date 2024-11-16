@@ -1,0 +1,13 @@
+apiVersion: apps.mashibing.com/v1
+kind: MSbDeployment
+metadata:
+  name: msbdeployment-test
+spec:
+  # TODO(user): Add fields here
+  image: nginx
+  port: 80
+  replicas: 3
+  expose:
+    mode: nodeport
+    nodeport: 8080
+

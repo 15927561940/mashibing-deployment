@@ -18,13 +18,17 @@ package controller
 
 import (
 	"context"
-
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"strings"
 
-	appsv1 "mashibing.com/pkg/mashibing-deployment/api/v1"
+	myAppsv1 "mashibing.com/pkg/mashibing-deployment/api/v1"
 )
 
 // MSbDeploymentReconciler reconciles a MSbDeployment object
@@ -47,16 +51,153 @@ type MSbDeploymentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *MSbDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx, "MsbDeployment", req.NamespacedName)
 
 	// TODO(user): your logic here
+	//1.获取资源对象
+	logger.Info("Reconcile  is   started")
+	md := new(myAppsv1.MSbDeployment)
+	err := r.Client.Get(ctx, req.NamespacedName, md)
+	if err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err) //保证意外正常退出而不是死循环
 
+	}
+
+	//防止污染缓存
+	mdCopy := md.DeepCopy()
+
+	//=====处理deployment======
+	//2.获取deployment
+	deploy := new(appsv1.Deployment)
+	if err := r.Client.Get(ctx, req.NamespacedName, deploy); err != nil {
+		if errors.IsNotFound(err) {
+			//2.1不存在，则创建
+			//2.1.1创建deployment
+			r.createDeployment(ctx, mdCopy)
+		} else {
+			return ctrl.Result{}, err
+		}
+
+	} else {
+		//2.2存在则更新
+		r.updateDeployment(mdCopy)
+	}
+
+	//=====处理svc======
+	//3.获取svc对象
+	svc := new(corev1.Service)
+	if err := r.Client.Get(ctx, req.NamespacedName, svc); err != nil {
+		//3.1不存在svc则创建
+
+		if errors.IsNotFound(err) {
+			if mdCopy.Spec.Expose.Mode == myAppsv1.ModeIngress {
+				//3.1.1mode如果是ingress
+				//3.1.1.1创建普通svc
+				r.createService(mdCopy)
+			} else if mdCopy.Spec.Expose.Mode == myAppsv1.ModeNodePort {
+				//3.1.2mode如果是nodePort
+				//3.1.2.1创建nodePort模式的svc
+				r.createNPService(mdCopy)
+			}
+		} else {
+			return ctrl.Result{}, err
+		}
+	} else {
+		//3.2.1mode如果是ingress
+		if mdCopy.Spec.Expose.Mode == myAppsv1.ModeIngress {
+			//3.2存在svc则更新
+			//3.2.1.1更新普通的svc
+			r.updateService(mdCopy)
+		} else if mdCopy.Spec.Expose.Mode == myAppsv1.ModeNodePort {
+			//3.2.2mode如果是nodeport
+			//3.2.2.1创建nodeport的svc
+			r.updateNPService(mdCopy)
+		} else {
+			return ctrl.Result{}, myAppsv1.ErrNotSupportMode
+		}
+
+	}
+
+	//=====处理ingress======
+	//4获取ingress资源
+	ig := new(networkv1.Ingress)
+	if err := r.Client.Get(ctx, req.NamespacedName, ig); err != nil {
+		//4.1不存在ingress
+		if errors.IsNotFound(err) {
+			if strings.ToLower(mdCopy.Spec.Expose.Mode) == myAppsv1.ModeIngress {
+				//4.1.1mode为ingress,创建ingress
+				r.createIngress(mdCopy)
+			} else if strings.ToLower(mdCopy.Spec.Expose.Mode) == myAppsv1.ModeNodePort {
+				//4.1.2mode为nodePort,无须ingress
+				//4.1.2.1退出
+				return ctrl.Result{}, nil
+			}
+
+		} else {
+			return ctrl.Result{}, err
+
+		}
+	} else {
+		//4.2存在ingress
+		if strings.ToLower(mdCopy.Spec.Expose.Mode) == myAppsv1.ModeIngress {
+			//4.2.1更新ingress
+			r.updateIngress(mdCopy)
+		} else if strings.ToLower(mdCopy.Spec.Expose.Mode) == myAppsv1.ModeNodePort {
+			//4.2.2mode为nodeport
+			//4.2.2删除ingress，更新成nodeport
+			r.deleteIngress(mdCopy)
+		}
+
+	}
+
+	logger.Info("Reconcile  is   结束")
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MSbDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.MSbDeployment{}).
+		For(&myAppsv1.MSbDeployment{}).
 		Complete(r)
+}
+
+func (r *MSbDeploymentReconciler) createDeployment(ctx context.Context, md *myAppsv1.MSbDeployment) {
+	deploy, err := NewDeployment(md)
+	if err != nil {
+		return
+	}
+	r.Client.Create(ctx, deploy)
+
+}
+
+func (r *MSbDeploymentReconciler) updateDeployment(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) createService(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) createNPService(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) updateService(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) updateNPService(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) createIngress(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) updateIngress(_ *myAppsv1.MSbDeployment) {
+
+}
+
+func (r *MSbDeploymentReconciler) deleteIngress(_ *myAppsv1.MSbDeployment) {
+
 }
