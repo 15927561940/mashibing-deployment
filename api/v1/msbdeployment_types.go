@@ -46,7 +46,7 @@ type MSbDeploymentSpec struct {
 	Environments []corev1.EnvVar `json:"environments,omitempty"`
 
 	//Expose要暴露服务的模式，ingress还是nodeport等
-	Expose *Expose
+	Expose *Expose `json:"expose"`
 }
 
 // Expose  //我们写的
